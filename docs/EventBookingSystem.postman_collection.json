@@ -1,0 +1,236 @@
+{
+  "info": {
+    "name": "Mini Event Management System",
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "description": "Postman collection for the Mini Event Management System API (Junior Node.js Selection Test)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "bookingCode",
+      "value": "",
+      "type": "string",
+      "description": "Populated automatically after POST /bookings"
+    }
+  ],
+  "item": [
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "GET /events – List upcoming events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            },
+            "description": "Returns all events whose date is in the future, ordered by date ascending."
+          },
+          "response": [
+            {
+              "name": "200 OK – Events listed",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"title\": \"Tech Summit 2026\",\n      \"description\": \"Annual technology conference\",\n      \"date\": \"2026-06-15T09:00:00.000Z\",\n      \"total_capacity\": 200,\n      \"remaining_tickets\": 198,\n      \"created_at\": \"2026-04-01T10:00:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /events – Create a new event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Node.js Workshop\",\n  \"description\": \"Hands-on Node.js deep-dive session\",\n  \"date\": \"2026-05-10T10:00:00Z\",\n  \"capacity\": 50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            },
+            "description": "Creates a new event. `title`, `date` (ISO 8601), and `capacity` (positive integer) are required."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 2,\n    \"title\": \"Node.js Workshop\",\n    \"description\": \"Hands-on Node.js deep-dive session\",\n    \"date\": \"2026-05-10T10:00:00.000Z\",\n    \"total_capacity\": 50,\n    \"remaining_tickets\": 50,\n    \"created_at\": \"2026-04-02T08:30:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "422 Validation Error",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"errors\": [\n    { \"msg\": \"title is required\", \"param\": \"title\", \"location\": \"body\" }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /events/:id/attendance – Check-in with booking code",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure bookingCode variable is set before running this request.",
+                  "// It is auto-populated by the POST /bookings request script."
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_code\": \"{{bookingCode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/1/attendance",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "1", "attendance"]
+            },
+            "description": "Validates the booking_code for event 1, records attendance, and returns total tickets booked for the event."
+          },
+          "response": [
+            {
+              "name": "201 Created – Checked in",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"event_id\": 1,\n    \"event_title\": \"Tech Summit 2026\",\n    \"tickets_booked\": 45,\n    \"total_capacity\": 200,\n    \"entry_time\": \"2026-06-15T09:15:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Invalid booking code",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid booking code for this event.\"\n}"
+            },
+            {
+              "name": "409 Already checked in",
+              "status": "Conflict",
+              "code": 409,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"message\": \"This booking has already been checked in.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "POST /bookings – Book a ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.booking_code) {",
+                  "  pm.collectionVariables.set('bookingCode', res.data.booking_code);",
+                  "  console.log('bookingCode set to:', res.data.booking_code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"event_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"]
+            },
+            "description": "Books a ticket for user 1 on event 1. Uses a DB transaction + SELECT FOR UPDATE to prevent race conditions. Returns a unique booking_code. The test script automatically saves the booking_code to the `bookingCode` collection variable."
+          },
+          "response": [
+            {
+              "name": "201 Created – Booking successful",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"booking_id\": 7,\n    \"user_id\": 1,\n    \"event_id\": 1,\n    \"booking_code\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"booking_date\": \"2026-04-02T09:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "409 No tickets remaining",
+              "status": "Conflict",
+              "code": 409,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"message\": \"No tickets remaining for this event.\"\n}"
+            },
+            {
+              "name": "409 Already booked",
+              "status": "Conflict",
+              "code": 409,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"message\": \"User has already booked this event.\"\n}"
+            },
+            {
+              "name": "404 User or Event not found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"message\": \"User not found.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "GET /users/:id/bookings – Get bookings for a user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/1/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "1", "bookings"]
+            },
+            "description": "Returns the user's profile along with all their bookings and the associated event details."
+          },
+          "response": [
+            {
+              "name": "200 OK – User bookings",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"id\": 1,\n      \"name\": \"Alice Johnson\",\n      \"email\": \"alice@example.com\"\n    },\n    \"bookings\": [\n      {\n        \"id\": 7,\n        \"booking_code\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"booking_date\": \"2026-04-02T09:00:00.000Z\",\n        \"event_id\": 1,\n        \"title\": \"Tech Summit 2026\",\n        \"description\": \"Annual technology conference\",\n        \"event_date\": \"2026-06-15T09:00:00.000Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "404 User not found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"message\": \"User not found.\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
