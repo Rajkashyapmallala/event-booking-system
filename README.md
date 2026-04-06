@@ -4,6 +4,7 @@ A RESTful API for browsing events, booking tickets, and recording attendance.
 Built with **Node.js**, **Express.js**, and **MySQL**.
 
 **Live deployment link** : https://event-booking-system-production-f359.up.railway.app
+
 **API Docs** : https://event-booking-system-production-f359.up.railway.app/api-docs
 
 Use user_id = 1 for testing
